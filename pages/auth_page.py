@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from appium.webdriver.common.appiumby import AppiumBy
+
 from .base_page import BasePage, by_id, by_predicate, static_text
 
 
@@ -97,7 +99,24 @@ class SignUpPage(BasePage):
             if locator in (self.SUCCESS, self.SUCCESS_FALLBACK)
             else SignUpOutcome.ERROR
         )
-        return SignUpResult(outcome, element.text or element.get_attribute("label") or "")
+        return SignUpResult(outcome, self._message_text(element))
+
+    def _message_text(self, element) -> str:
+        """Resolve human-readable copy regardless of where the identifier sits.
+
+        iOS `.text` returns `value` first, which for a tagged container or a
+        selected Text is the literal "Selected". Prefer the label, then any
+        descendant StaticText labels, then fall back to the raw value.
+        """
+        label = (element.get_attribute("label") or "").strip()
+        if label and label.lower() != "selected":
+            return label
+        children = element.find_elements(
+            AppiumBy.IOS_CLASS_CHAIN, "**/XCUIElementTypeStaticText"
+        )
+        parts = [(c.get_attribute("label") or c.text or "").strip() for c in children]
+        joined = " ".join(p for p in parts if p and p.lower() != "selected")
+        return joined or (element.text or "").strip()
 
     # Convenience accessors kept for the existing test_signup.py suite.
     def success_text(self) -> str:
