@@ -20,12 +20,22 @@ VALID_PASSWORD = "TestPass123!"
 
 @pytest.mark.smoke
 def test_signin_screen_components_load(driver):
-    """Sign-in screen renders its header, primary CTA, and sign-up prompt."""
+    """Verify the main sign-in controls without submitting credentials."""
+
+    # The driver fixture supplies the Appium session.
+    # SignInPage groups the screen's locators and interaction helpers.
     signin = SignInPage(driver)
 
+    # Confirm that the app is on the expected starting screen.
     assert signin.is_loaded(), "Sign-in header not visible on launch"
+    
+    # Check that the primary sign-in action is enabled.
+    # This test does not tap it or attempt to sign in.
     assert signin.find(signin.SUBMIT).is_enabled(), "Primary 'Sign in' button is disabled"
+
+    # Check the registration prompt and its separate navigation link.
     assert signin.find(signin.SIGNUP_PROMPT).is_displayed(), "Sign-up prompt not visible"
+
     assert signin.find(signin.TO_SIGNUP).is_enabled(), "Sign-up link is disabled"
 
 
