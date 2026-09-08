@@ -53,8 +53,15 @@ class SignUpPage(BasePage):
     SUBMIT = by_id("signup_submit_button")
     TO_SIGNIN = by_predicate('type == "XCUIElementTypeButton" AND label == "Log In"')  # TODO(app): signup_to_signin_link
 
-    SUCCESS = by_id("signup_success_message")
-    ERROR = by_id("signup_error_message")
+    # Scoped to StaticText: AuthView sets the identifier on the HStack, and
+    # SwiftUI propagates it to the icon Image too (whose value is "Selected").
+    # TODO(app): add .accessibilityElement(children: .combine) to that HStack.
+    SUCCESS = by_predicate(
+        'type == "XCUIElementTypeStaticText" AND name == "signup_success_message"'
+    )
+    ERROR = by_predicate(
+        'type == "XCUIElementTypeStaticText" AND name == "signup_error_message"'
+    )
     # TODO(app): remove once AuthView tags the error/success Text views. Until then
     # the error surfaces as an untagged StaticText next to a warning icon.
     ERROR_FALLBACK = by_predicate(
