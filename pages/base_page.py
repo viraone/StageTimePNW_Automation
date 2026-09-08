@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from appium.webdriver.common.appiumby import AppiumBy
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -71,9 +71,49 @@ class BasePage:
         return (wait or self.wait).until(_any)
 
     # -- keyboard ----------------------------------------------------------- #
+    KEYBOARD = by_predicate('type == "XCUIElementTypeKeyboard"')
+    RETURN_KEY = by_predicate(
+        'type == "XCUIElementTypeButton" AND '
+        '(name == "Return" OR name == "Done" OR name == "Go" OR name == "Next")'
+    )
+
     def dismiss_keyboard(self) -> None:
-        if self.driver.is_keyboard_shown():
-            self.driver.hide_keyboard()
+        """Best-effort keyboard dismissal.
+
+        WDA's native hide-keyboard only knows a few toolbar labels and raises
+        InvalidElementStateException on plain SwiftUI keyboards. Work through
+        the strategies the app actually supports; never fail the test here —
+        callers tap elements that XCUITest scrolls into view regardless.
+        """
+        if not self._keyboard_visible():
+            return
+        for strategy in (self._hide_keyboard_native, self._tap_return_key, self._tap_outside_keyboard):
+            try:
+                strategy()
+            except WebDriverException:
+                continue
+            if not self._keyboard_visible():
+                return
+
+    def _keyboard_visible(self) -> bool:
+        try:
+            return self.driver.is_keyboard_shown()
+        except WebDriverException:
+            return self.is_present(self.KEYBOARD)
+
+    def _hide_keyboard_native(self) -> None:
+        self.driver.hide_keyboard()
+
+    def _tap_return_key(self) -> None:
+        self.driver.find_element(*self.RETURN_KEY).click()
+
+    def _tap_outside_keyboard(self) -> None:
+        # Tap the top edge of the app window, well clear of the keyboard and
+        # any interactive control, which resigns first responder in SwiftUI.
+        size = self.driver.get_window_size()
+        self.driver.execute_script(
+            "mobile: tap", {"x": size["width"] // 2, "y": 40}
+        )
 
     # -- helpers ------------------------------------------------------------ #
     @staticmethod
