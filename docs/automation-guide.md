@@ -249,16 +249,27 @@ let supabase = SupabaseClient(
 )
 ```
 
-Then in `conftest.py`:
+`conftest.py` already wires this up — just export the env vars before running:
+
+```bash
+export STAGETIME_SUPABASE_URL=http://127.0.0.1:54321        # local Supabase or mock
+export STAGETIME_SUPABASE_ANON_KEY=<anon key from `supabase status`, or any string for the mock>
+pytest -m signup
+```
+
+Under the hood this becomes:
 
 ```python
 options.set_capability("appium:processArguments", {
-    "env": {
-        "SUPABASE_URL": "http://127.0.0.1:54321",          # local Supabase or mock
-        "SUPABASE_ANON_KEY": "<anon key from `supabase status`, or any string for the mock>",
-    }
+    "env": {"SUPABASE_URL": ..., "SUPABASE_ANON_KEY": ...}
 })
 ```
+
+If `STAGETIME_SUPABASE_URL` is unset the suite warns and the app talks to
+production. Against production, GoTrue must be able to *deliver* the
+confirmation email; a non-routable address (e.g. `@example.com`) surfaces as
+"Error sending confirmation email" on the sign-up screen. On any failure the
+suite writes `<test>.png` and `<test>.xml` (page source) to `artifacts/`.
 
 `processArguments.env` is only honoured when Appium launches the app itself, so
 use `options.bundle_id` (already set) with `no_reset = False`, or `options.app`.
