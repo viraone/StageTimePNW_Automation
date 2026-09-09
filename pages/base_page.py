@@ -45,6 +45,39 @@ class BasePage:
         el.send_keys(text)
         return el
 
+    # iOS offers "Use Strong Password?" when a sign-up form's new-password field
+    # gains focus. The sheet is system UI (not ours) and swallows keystrokes until
+    # dismissed, so we opt out the same way a user who wants their own password does.
+    STRONG_PASSWORD_SHEET = static_text("Use Strong Password?")
+    STRONG_PASSWORD_CLOSE = by_predicate(
+        'type == "XCUIElementTypeButton" AND (name == "xmark" OR label == "Close")'
+    )
+
+    def dismiss_strong_password_sheet(self, timeout: float = 1.5) -> bool:
+        if not self.is_present(self.STRONG_PASSWORD_SHEET, timeout=timeout):
+            return False
+        self.tap(self.STRONG_PASSWORD_CLOSE)
+        try:
+            WebDriverWait(self.driver, 3).until_not(
+                EC.presence_of_element_located(self.STRONG_PASSWORD_SHEET)
+            )
+        except TimeoutException:
+            pass
+        return True
+
+    def type_password(self, locator: Locator | str, text: str, attempts: int = 3):
+        el = self.find(locator)
+        el.click()
+        # iOS may re-offer the sheet each time the field regains focus.
+        for _ in range(attempts):
+            if not self.dismiss_strong_password_sheet():
+                break
+            el = self.find(locator)
+            el.click()
+        el.clear()
+        el.send_keys(text)
+        return el
+
     def text_of(self, locator: Locator | str) -> str:
         return self.find(locator).text
 

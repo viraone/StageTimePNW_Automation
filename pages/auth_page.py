@@ -79,8 +79,8 @@ class SignUpPage(BasePage):
 
     def fill(self, email: str, password: str, confirm: str | None = None) -> "SignUpPage":
         self.type(self.EMAIL, email)
-        self.type(self.PASSWORD, password)
-        self.type(self.CONFIRM, password if confirm is None else confirm)
+        self.type_password(self.PASSWORD, password)
+        self.type_password(self.CONFIRM, password if confirm is None else confirm)
         self.dismiss_keyboard()
         return self
 
